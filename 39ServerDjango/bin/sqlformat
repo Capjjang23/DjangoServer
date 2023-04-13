@@ -1,4 +1,4 @@
-#!/Users/igahyeon/Documents/캡스톤/DjangoServer/39ServerDjango/bin/python3
+#!/Users/igahyeon/Documents/캡스톤/DjangoServer/39ServerDjango/bin/python3.11
 # -*- coding: utf-8 -*-
 import re
 import sys
