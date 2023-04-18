@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>image</title>
+
+</head>
+<body>
+<!-- 파일 선택 폼 -->
+<input type="file" id="m4a_file">
+
+<!-- 이미지 표시 -->
+<img id="specImg" src="" alt="Spectrogram Image">
+
+<!-- 파일 선택 버튼 -->
+<button type="button" onclick="displayImage()">Display Spectrogram</button>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function displayImage() {
+        // POST 요청을 보낼 URL 설정
+        var url = "{% url 'post_image' %}";
+
+        // FormData 객체 생성
+        var formData = new FormData();
+
+        // 파일 데이터 추가
+        formData.append('m4a', $('#m4a_file')[0].files[0]);
+
+        // POST 요청 전송
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                // 이미지 URL 받아오기
+                var imageUrl = response.image_url;
+
+                // 이미지 표시
+                $('#specImg').attr('src', imageUrl);
+            },
+            error: function(error) {
+                console.log(error);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
