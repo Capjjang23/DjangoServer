@@ -1,44 +1,42 @@
-import json
-import os
 from io import BytesIO
-
-from PIL.Image import Image
-from django.http import HttpResponse, HttpResponseNotAllowed
-from django.shortcuts import render
+from PIL import Image
+from django.http import HttpResponse, HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 
 import requests
-
-#GET 요청을 처리
-# def get_audio(request):
-#     if request.method == 'GET':
-#         # GET 요청에서 파일 이름을 가져옵니다.
-#         file_name = request.GET.get('file_name')
-#
-#         # 파일을 열어서 바이너리 응답으로 반환합니다.
-#         with open(file_name, 'rb') as f:
-#             response = HttpResponse(f.read(), content_type='m4a/*')
-#             response['Content-Disposition'] = 'attachment; filename=' + file_name
-#             return response
-#
-# url = 'http://localhost:8000/get_audio'
-# params = {'file_name': 'z.m4a'}
-# response = requests.get(url, params=params)
-
-
+import traceback
+import os
 
 def get_spectrogram(request):
     if request.method == 'GET':
         # 클라이언트에서 전송한 파일을 가져옵니다.
-        audio_file = request.FILES.get('audio_file')
+
+        audio_path = 'djangoServer/audio/m.m4a'
+        url = 'http://localhost:8000/process_audio/'
+        try:
+            with open(audio_path, 'rb') as f:
+                # audio_file = {'m4a' : f}
+                if not f.closed:
+                    print(f"{audio_path} is opened.")
+                spectrogram = requests.post(url, files={'m4a': f})
+                # print(spectrogram)
+
+        except FileNotFoundError:
+            # 파일이 존재하지 않을 때의 예외 처리
+            print(f"{audio_path} does not exist.")
+        except Exception as e:
+            # 그 외의 예외 처리
+            print(f"An error occurred while opening {audio_path}: {e}")
+        # audio_file = request.FILES.get('audio_file')
 
         # 스펙트로그램 이미지를 생성합니다.
-        spectrogram = process_audio(audio_file)
+        # spectrogram = process_audio(audio_file)
+
+        # spectrogram = requests.post(url, files=audio_file)
 
         # 스펙트로그램 이미지를 응답으로 반환합니다.
-        response = HttpResponse(spectrogram, content_type='image/png')
+        response = HttpResponse(spectrogram, content_type='image/jpeg')
         return response
-
 
 
 # POST 응답 처리
@@ -46,55 +44,64 @@ from pydub import AudioSegment
 import numpy as np
 import librosa, librosa.display
 import matplotlib.pyplot as plt
-from django.http import JsonResponse
-from django.conf import settings
+import matplotlib
+matplotlib.use('Agg')
 
+from django.conf import settings
 
 FIG_SIZE = (15, 10)
 DATA_NUM = 30
 
+
 # m4a -> wav -> spectrogram / -> model -> result
 @csrf_exempt
 def process_audio(request):
-    if request.method == 'POST':
-        # POST 요청에서 이미지 파일을 가져옵니다.
-        m4a_file = request.FILES['m4a']
+    global peekIndex, image_url
 
-        # 소리 + 묵음
-        # load the audio files
-        audio1 = AudioSegment.from_file(m4a_file, format="m4a")
-        audio2 = AudioSegment.from_file("silenceSound.m4a", format="m4a")
+    print("process_audio")
+    try:
+        if request.method == 'POST':
+            print("POST")
+            # POST 요청에서 이미지 파일을 가져옵니다.
+            m4a_file = request.FILES['m4a']
+            #print("m4a_file : ", m4a_file)
 
-        # concatenate the audio files
-        combined_audio = audio1 + audio2
+            # 소리 + 묵음
+            # load the audio files
+            audio1 = AudioSegment.from_file(m4a_file, format="m4a")
+            audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
 
-        # export the concatenated audio as a new file
-        file_handle = combined_audio.export("combined.wav", format="wav")
+            # concatenate the audio files
+            combined_audio = audio1 + audio2
 
+            # export the concatenated audio as a new file
+            file_handle = combined_audio.export("combined.wav", format="wav")
 
-        # paths.append(file_path)
-        sig, sr = librosa.load(file_handle, sr=22050)
+            # paths.append(file_path)
+            sig, sr = librosa.load(file_handle, sr=22050)
 
-        # 에너지 평균 구하기
-        sum = 0
-        for i in range(0, sig.shape[0]):
-            sum += sig[i] ** 2
-        mean = sum / sig.shape[0]
+            # 에너지 평균 구하기
+            sum = 0
+            for i in range(0, sig.shape[0]):
+                sum += sig[i] ** 2
+            mean = sum / sig.shape[0]
 
-        # 피크인덱스 찾기
-        for i in range(0, sig.shape[0]):
-            if (sig[i] ** 2 >= mean):
-                peekIndex = i
-                break
+            # 피크인덱스 찾기
+            for i in range(0, sig.shape[0]):
+                if (sig[i] ** 2 >= mean):
+                    peekIndex = i
+                    break
 
-        START_LEN = 1102
-        END_LEN = 20948
-        if peekIndex > 1102:
-            startPoint = peekIndex - START_LEN
-            endPoint = peekIndex + 22050
-        else:
-            startPoint = peekIndex
-            endPoint = peekIndex + END_LEN
+            START_LEN = 1102
+            END_LEN = 20948
+            if peekIndex > 1102:
+                print(peekIndex)
+                startPoint = peekIndex - START_LEN
+                endPoint = peekIndex + 22050
+            else:
+                print(peekIndex)
+                startPoint = peekIndex
+                endPoint = peekIndex + END_LEN
 
             # 단순 푸리에 변환 -> Specturm
             fft = np.fft.fft(sig[startPoint:endPoint])
@@ -132,39 +139,37 @@ def process_audio(request):
             plt.figure(figsize=FIG_SIZE)
             librosa.display.specshow(log_spectrogram, sr=sr, hop_length=hop_length, cmap='magma')
 
+
             # matplotlib 라이브러리를 사용하여 생성된 spectrogram 이미지를 jpg 형식으로 저장
-            name_end_pos = file_handle.find('.')
-            image_path = '/images/' + file_handle[:name_end_pos] + '.jpg'
-            image_url = settings.STATIC_URL + image_path
+            #name_end_pos = file_handle.find('.')
+            # print(name_end_pos)
+            # image_path = 'images/' + file_handle[:name_end_pos] + '.jpg'
+            # print(image_path)
+            # image_url = settings.STATIC_URL + image_path
+            # print(image_url)
+            image_path = 'static/images/' + 'test.jpg'
 
             # save spectrogram image
-            plt.savefig('static/images/' + file_handle[:name_end_pos] + '.jpg')
+            #plt.savefig('static/images/' + file_handle[:name_end_pos] + '.jpg')
+            # spectrogram 이미지 저장
+            plt.savefig(image_path)
+
             plt.close()
 
+            # 이미지 열기
+            image = Image.open(image_path)
+            # 저장된 이미지를 열어서 확인
+            #os.system('open ' + image_path)  # Mac OS 기준
 
-        # 이미지 열기
-        image = Image.open(image_url)
+            # 이미지를 바이트 형태로 변환하여 메모리에 저장
+            image_bytes = BytesIO()
+            image.save(image_bytes, format='JPEG')
+            image_bytes = image_bytes.getvalue()
 
-        # 이미지를 바이트 형태로 변환하여 메모리에 저장
-        image_bytes = BytesIO()
-        image.save(image_bytes, format='JPEG')
-        image_bytes = image_bytes.getvalue()
-
-        # 이미지를 HttpResponse 객체에 첨부 파일로 반환
-        response = HttpResponse(image_bytes, content_type='image/jpeg')
-        response['Content-Disposition'] = 'attachment; filename="spectrogram.jpg"'
-        return response
-
-
-url = 'http://localhost:8000/get_spectrogram'
-files = {'audio_file': open('djangoServer/djangoServer/z.m4a', 'rb')}
-response = requests.get(url, files=files)
-
-# 응답으로 받은 스펙트로그램 이미지를 저장합니다.
-with open('spectrogram.png', 'wb') as f:
-    f.write(response.content)
-
-
-
-
-
+            # 이미지를 HttpResponse 객체에 첨부 파일로 반환
+            response = HttpResponse(image_bytes, content_type='image/jpeg')
+            response['Content-Disposition'] = 'inline; filename="spectrogram.jpeg"'
+            return response
+    except Exception as e:
+        print(traceback.format_exc())  # 예외 발생시 traceback 메시지 출력
+        return HttpResponseServerError()  # 500 Internal Server Error 응답 반환
