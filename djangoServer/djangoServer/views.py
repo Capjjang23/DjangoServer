@@ -14,7 +14,7 @@ def get_spectrogram(request):
         # 클라이언트에서 전송한 파일을 가져옵니다.
 
         # response = None  # 초기값을 지정해줍니다.
-        audio_path = 'djangoServer/audio/m.m4a'
+        audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
         url = 'http://223.194.153.133:8000/process_audio/'
         try:
@@ -26,13 +26,12 @@ def get_spectrogram(request):
                     print(f"{audio_path} is opened.")
                 # spectrogram = requests.post(url, files={'m4a': f})
                 response = requests.post(url, data=byte_array)
-                print(response.status_code)
-                print(response.text)
+
                 # print(spectrogram)
 
                 if response.status_code == 200:
                     response_data = json.loads(response.content.decode('utf-8')) if response else {}
-                    print(response_data)
+                    print("get : " , response_data)
 
                     predicted_alphabet = response_data['predicted_alphabet']
                     return JsonResponse({'predicted_alphabet': predicted_alphabet})
@@ -122,8 +121,8 @@ def process_audio(request):
             # silent = np.zeros(silent_samples)
             # data = np.concatenate((data, silent))
             #
-            # # 신호 및 샘플링 레이트 가져오기
-            # sig, sr = data, sr
+            # 신호 및 샘플링 레이트 가져오기
+            sig, sr = librosa.load(file_handle, sr=22050)
 
             # 에너지 평균 구하기
             sum = 0
@@ -140,11 +139,11 @@ def process_audio(request):
             START_LEN = 1102
             END_LEN = 20948
             if peekIndex > 1102:
-                print(peekIndex)
+                #print(peekIndex)
                 startPoint = peekIndex - START_LEN
                 endPoint = peekIndex + 22050
             else:
-                print(peekIndex)
+                #print(peekIndex)
                 startPoint = peekIndex
                 endPoint = peekIndex + END_LEN
 
@@ -220,10 +219,10 @@ def process_audio(request):
             predicted_class_index = torch.argmax(prediction).item()
 
             # 예측값 알파벳 출력
-            print(alpha[predicted_class_index])
+            #print(alpha[predicted_class_index])
 
             response = {'predicted_alphabet': alpha[predicted_class_index]}
-            print(response)
+            print("post: ", response)
             return JsonResponse(response)
     except Exception as e:
         print(traceback.format_exc())  # 예외 발생시 traceback 메시지 출력
