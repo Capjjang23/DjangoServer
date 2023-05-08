@@ -59,8 +59,6 @@ import librosa, librosa.display
 import asyncio
 import matplotlib.pyplot as plt
 import matplotlib
-import soundfile as sf
-import wave
 
 matplotlib.use('Agg')
 
@@ -90,40 +88,47 @@ def process_audio(request):
             # response_data = {'key': 'mimifool'}  # 안드로이드 앱에게 보낼 응답 데이터를 딕셔너리 형태로 작성합니다.
             # return HttpResponse(json.dumps(response_data), content_type="application/json")
 
-
+            # POST 요청에서 이미지 파일을 가져옵니다.
+            # m4a_file = request.FILES['m4a']
+            # print("m4a_file : ", m4a_file)
 
             # POST 요청에서 biteArray 데이터를 가져옵니다.
             byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
-            with wave.open('my_audio_file.wav', 'wb') as wav_file:
-                wav_file.setnchannels(1)  # 모노 채널
-                wav_file.setsampwidth(2)  # 16비트 샘플링
-                wav_file.setframerate(44100)  # 44.1kHz 샘플링 주파수
-                wav_file.writeframes(byte_array)
+            # print("테스트: ",byte_array)
+            with open('my_audio_file.wav', 'wb') as f:
+                f.write(byte_array)
 
+            # 바이트 배열을 파일처럼 BytesIO 객체를 생성한다.
+            # byte_io = io.BytesIO(byte_array)
+            # librosa.load 함수를 사용하여 음향 데이터를 읽어온다.
+            # sig, sr = librosa.load(io.BytesIO(byte_array), sr=22050)
+            # # 3초의 묵음을 추가한다.
+            # silence_duration = 3  # 3초
+            # silence_samples = np.zeros(int(silence_duration * sr))
+            # y_with_silence = np.concatenate([sig, silence_samples]) # numpy 형태
+
+            # y_with_silence를 다시 바이트 배열로 변환한다.
+            # byte_array_with_silence = bytearray(y_with_silence)
+            #
+            # # 바이트 배열을 신호로 변환한다.
+            # sig, sr = librosa.load(io.BytesIO(byte_array_with_silence), sr=22050)
+
+            # 소리 + 묵음
+            # load the audio files
             audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
-            # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
-            silence = AudioSegment.silent(duration=3000)  # 3초 묵음
+            #audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
+            silence = AudioSegment.silent(duration=3000) #3초 묵음
+
 
             # concatenate the audio files
-            # combined_audio = audio1 + audio2
-            combined_audio = audio1 + silence
+            #combined_audio = audio1 + audio2
+            combined_audio = audio1+silence
 
             # export the concatenated audio as a new file
             file_handle = combined_audio.export("combined.wav", format="wav")
 
-            # data, sr = librosa.load(io.BytesIO(byte_array), sr=22050, mono=True)
-            # # byte_array: 바이트 배열
-            # # with io.BytesIO(byte_array) as f:
-            # #     data, sr = sf.read(f, dtype='float32')
-            #
-            # # 3초 묵음 추가
-            # silent_sec = 3
-            # silent_samples = int(silent_sec * sr)
-            # silent = np.zeros(silent_samples)
-            # data = np.concatenate((data, silent))
-            #
-            # # 신호 및 샘플링 레이트 가져오기
-            # sig, sr = data, sr
+            # paths.append(file_path)
+            sig, sr = librosa.load(file_handle, sr=22050)
 
             # 에너지 평균 구하기
             sum = 0
@@ -222,6 +227,15 @@ def process_audio(request):
             # 예측값 알파벳 출력
             print(alpha[predicted_class_index])
 
+            # 이미지를 바이트 형태로 변환하여 메모리에 저장
+            # image_bytes = BytesIO()
+            # image.save(image_bytes, format='JPEG')
+            # image_bytes = image_bytes.getvalue()
+
+            # 이미지를 HttpResponse 객체에 첨부 파일로 반환
+            # response = HttpResponse(image_bytes, content_type='image/jpeg')
+            # response['Content-Disposition'] = 'inline; filename="spectrogram.jpeg"'
+            # return response
             response = {'predicted_alphabet': alpha[predicted_class_index]}
             print(response)
             return JsonResponse(response)
