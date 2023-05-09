@@ -3,6 +3,8 @@ from django.http import HttpResponse, HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import io
+import struct
+
 
 import requests
 import traceback
@@ -16,7 +18,7 @@ def get_spectrogram(request):
         # response = None  # 초기값을 지정해줍니다.
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.153.133:8000/process_audio/'
+        url = 'http://223.194.128.94:8000/process_audio/'
         try:
             with open(audio_path, 'rb') as f:
                 # audio_file = {'m4a' : f}
@@ -84,7 +86,14 @@ def process_audio(request):
             print("POST")
 
             # POST 요청에서 biteArray 데이터를 가져옵니다.
-            byte_array = bytearray(request.body)  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
+            #byte_array = bytearray(request.body)  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
+
+            requestBody = json.loads(request.body)  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
+            byte_data = requestBody['recordData']
+            byte_array = bytes([struct.pack('b', x)[0] for x in byte_data])
+
+            print(byte_array)
+
             with open('my_audio_file.aac', 'wb+') as destination:
                 for i in range(0, len(byte_array), 32):
                     chunk = byte_array[i:i + 32]
@@ -95,7 +104,7 @@ def process_audio(request):
             output_file = "my_audio_file.wav"
 
             # Run the ffmpeg command to convert the AAC file to WAV
-            subprocess.run(["ffmpeg", "-i", input_file, output_file])
+            subprocess.run(["ffmpeg", "-y", "-i", input_file, output_file])
 
             # audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
             # # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
