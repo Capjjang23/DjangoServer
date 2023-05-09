@@ -17,7 +17,6 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 django.setup()
 
-from djangoServer.djangoServer.views import post_image
 
 # POST 요청을 시뮬레이션하기 위한 코드
 class Request:
@@ -28,7 +27,7 @@ class Request:
 
 import requests
 
-url = 'http://127.0.0.1:8000/post_image/' # Django 서버 URL
+url = 'http://172.30.1.17:8000/post_image/' # Django 서버 URL
 filename = '../m4a/z.m4a'
 files = {'m4a': open(filename, 'rb')} # 파일 열기
 

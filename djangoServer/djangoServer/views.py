@@ -31,7 +31,7 @@ def get_spectrogram(request):
 
                 if response.status_code == 200:
                     response_data = json.loads(response.content.decode('utf-8')) if response else {}
-                    print("get : " , response_data)
+                    print("get : ", response_data)
 
                     predicted_alphabet = response_data['predicted_alphabet']
                     return JsonResponse({'predicted_alphabet': predicted_alphabet})
@@ -58,6 +58,7 @@ import librosa, librosa.display
 import asyncio
 import matplotlib.pyplot as plt
 import matplotlib
+import subprocess
 import soundfile as sf
 import wave
 
@@ -82,33 +83,30 @@ def process_audio(request):
         if request.method == 'POST':
             print("POST")
 
-            # -------여기가 받는 곳 -------
-            # byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
-            # print(byte_array)
-            # #데이터 처리 로직 작성
-            # response_data = {'key': 'mimifool'}  # 안드로이드 앱에게 보낼 응답 데이터를 딕셔너리 형태로 작성합니다.
-            # return HttpResponse(json.dumps(response_data), content_type="application/json")
-
-
-
             # POST 요청에서 biteArray 데이터를 가져옵니다.
-            byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
-            with wave.open('my_audio_file.wav', 'wb') as wav_file:
-                wav_file.setnchannels(1)  # 모노 채널
-                wav_file.setsampwidth(2)  # 16비트 샘플링
-                wav_file.setframerate(44100)  # 44.1kHz 샘플링 주파수
-                wav_file.writeframes(byte_array)
+            byte_array = bytearray(request.body)  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
+            with open('my_audio_file.aac', 'wb+') as destination:
+                for i in range(0, len(byte_array), 32):
+                    chunk = byte_array[i:i + 32]
+                    destination.write(chunk)
 
-            audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
-            # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
-            silence = AudioSegment.silent(duration=3000)  # 3초 묵음
+            #aac -> wav
+            input_file = "my_audio_file.aac"
+            output_file = "my_audio_file.wav"
 
-            # concatenate the audio files
-            # combined_audio = audio1 + audio2
-            combined_audio = audio1 + silence
+            # Run the ffmpeg command to convert the AAC file to WAV
+            subprocess.run(["ffmpeg", "-i", input_file, output_file])
 
-            # export the concatenated audio as a new file
-            file_handle = combined_audio.export("combined.wav", format="wav")
+            # audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
+            # # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
+            # silence = AudioSegment.silent(duration=3000)  # 3초 묵음
+            #
+            # # concatenate the audio files
+            # # combined_audio = audio1 + audio2
+            # combined_audio = audio1 + silence
+            #
+            # # export the concatenated audio as a new file
+            # file_handle = combined_audio.export("combined.wav", format="wav")
 
             # data, sr = librosa.load(io.BytesIO(byte_array), sr=22050, mono=True)
             # # byte_array: 바이트 배열
@@ -122,7 +120,7 @@ def process_audio(request):
             # data = np.concatenate((data, silent))
             #
             # 신호 및 샘플링 레이트 가져오기
-            sig, sr = librosa.load(file_handle, sr=22050)
+            sig, sr = librosa.load("my_audio_file.wav", sr=22050)
 
             # 에너지 평균 구하기
             sum = 0
@@ -139,11 +137,11 @@ def process_audio(request):
             START_LEN = 1102
             END_LEN = 20948
             if peekIndex > 1102:
-                #print(peekIndex)
+                # print(peekIndex)
                 startPoint = peekIndex - START_LEN
                 endPoint = peekIndex + 22050
             else:
-                #print(peekIndex)
+                # print(peekIndex)
                 startPoint = peekIndex
                 endPoint = peekIndex + END_LEN
 
@@ -219,7 +217,7 @@ def process_audio(request):
             predicted_class_index = torch.argmax(prediction).item()
 
             # 예측값 알파벳 출력
-            #print(alpha[predicted_class_index])
+            # print(alpha[predicted_class_index])
 
             response = {'predicted_alphabet': alpha[predicted_class_index]}
             print("post: ", response)

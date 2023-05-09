@@ -16,7 +16,7 @@ def get_spectrogram(request):
         # response = None  # 초기값을 지정해줍니다.
         audio_path = 'djangoServer/audio/m.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.153.133:8000/process_audio/'
+        url = 'http://172.30.1.17:8000/process_audio/'
         try:
             with open(audio_path, 'rb') as f:
                 # audio_file = {'m4a' : f}
@@ -79,7 +79,15 @@ def process_audio(request):
     print("process_audio")
     try:
         if request.method == 'POST':
-            print("POST")
+            # file = request.FILES['file']
+            # file = request.body
+            data = bytearray(request.body)
+            # print(data)
+            with open('file.wav', 'wb+') as destination:
+                for i in range(0, len(data), 32):
+                    chunk = data[i:i + 32]
+                    destination.write(chunk)
+
 
             # -------여기가 받는 곳 -------
             # byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
@@ -93,10 +101,10 @@ def process_audio(request):
             # print("m4a_file : ", m4a_file)
 
             # POST 요청에서 biteArray 데이터를 가져옵니다.
-            byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
-            # print("테스트: ",byte_array)
-            with open('my_audio_file.wav', 'wb') as f:
-                f.write(byte_array)
+            # byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
+            # # print("테스트: ",byte_array)
+            # with open('my_audio_file.wav', 'wb') as f:
+            #     f.write(byte_array)
 
             # 바이트 배열을 파일처럼 BytesIO 객체를 생성한다.
             # byte_io = io.BytesIO(byte_array)
@@ -115,7 +123,9 @@ def process_audio(request):
 
             # 소리 + 묵음
             # load the audio files
-            audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
+
+
+            audio1 = AudioSegment.from_file("file.wav", format="wav")
             #audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
             silence = AudioSegment.silent(duration=3000) #3초 묵음
 

@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-from rest_framework import serializers, viewsets
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,7 +25,7 @@ SECRET_KEY = 'django-insecure-phpd2vq-6(!^tq97^%nyw)(%33-3te@5*$v1vx_9g8ielgc$2a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['223.194.153.133']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1','10.0.2.16','172.30.1.17']
 
 
 # Application definition
