@@ -1,37 +1,37 @@
 from PIL import Image
-from django.http import HttpResponse, HttpResponseServerError
+from django.http import HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-import io
 
 import requests
 import traceback
 import json
 
-
 def get_spectrogram(request):
     if request.method == 'GET':
         # 클라이언트에서 전송한 파일을 가져옵니다.
 
-        # response = None  # 초기값을 지정해줍니다.
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.153.133:8000/process_audio/'
+        url = 'http://223.194.158.116:8000/process_audio/'
+        headers = {"Content-Type": "application/json"}
+
         try:
             with open(audio_path, 'rb') as f:
-                # audio_file = {'m4a' : f}
                 byte_array = bytearray(f.read())  # 파일을 바이트 배열로 읽음
-                # print(byte_array)
+
                 if not f.closed:
                     print(f"{audio_path} is opened.")
-                # spectrogram = requests.post(url, files={'m4a': f})
+
+                data = {'recordData': byte_array}
+                #response = requests.post(url, data=json.dumps(data), headers=headers)
                 response = requests.post(url, data=byte_array)
 
-                # print(spectrogram)
+                print(response.json())
 
                 if response.status_code == 200:
                     response_data = json.loads(response.content.decode('utf-8')) if response else {}
-                    print("get : " , response_data)
+                    print("get : ", response_data)
 
                     predicted_alphabet = response_data['predicted_alphabet']
                     return JsonResponse({'predicted_alphabet': predicted_alphabet})
@@ -55,15 +55,12 @@ import torch
 import torchvision.transforms as transforms
 import numpy as np
 import librosa, librosa.display
-import asyncio
 import matplotlib.pyplot as plt
 import matplotlib
-import soundfile as sf
-import wave
+import subprocess
+import struct
 
 matplotlib.use('Agg')
-
-from django.conf import settings
 
 FIG_SIZE = (15, 10)
 DATA_NUM = 30
@@ -71,6 +68,10 @@ DATA_NUM = 30
 alpha = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
          'w', 'x', 'y', 'z']
 
+# 음성 데이터의 샘플링 레이트, 채널 수, 샘플링 포맷 등을 정의합니다.
+SAMPLE_RATE = 44100
+CHANNELS = 1
+SAMPLE_WIDTH = 2
 
 # m4a -> wav -> spectrogram / -> model -> result
 @csrf_exempt
@@ -82,26 +83,26 @@ def process_audio(request):
         if request.method == 'POST':
             print("POST")
 
-            # -------여기가 받는 곳 -------
-            # byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
-            # print(byte_array)
-            # #데이터 처리 로직 작성
-            # response_data = {'key': 'mimifool'}  # 안드로이드 앱에게 보낼 응답 데이터를 딕셔너리 형태로 작성합니다.
-            # return HttpResponse(json.dumps(response_data), content_type="application/json")
-
-
-
             # POST 요청에서 biteArray 데이터를 가져옵니다.
-            byte_array = request.body  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
-            with wave.open('my_audio_file.wav', 'wb') as wav_file:
-                wav_file.setnchannels(1)  # 모노 채널
-                wav_file.setsampwidth(2)  # 16비트 샘플링
-                wav_file.setframerate(44100)  # 44.1kHz 샘플링 주파수
-                wav_file.writeframes(byte_array)
+            requestBody = json.loads(request.body)  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
+            byte_data = requestBody['recordData']
+            byte_array = bytes([struct.pack('b', x)[0] for x in byte_data])
+
+            with open('my_audio_file.aac', 'wb+') as destination:
+                for i in range(0, len(byte_array), 32):
+                    chunk = byte_array[i:i + 32]
+                    destination.write(chunk)
+
+            # aac -> wav
+            input_file = "my_audio_file.aac"
+            output_file = "my_audio_file.wav"
+
+            # Run the ffmpeg command to convert the AAC file to WAV
+            subprocess.run(["ffmpeg", "-y", "-i", input_file, output_file])
 
             audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
             # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
-            silence = AudioSegment.silent(duration=3000)  # 3초 묵음
+            silence = AudioSegment.silent(duration=1000)  # 1초 묵음
 
             # concatenate the audio files
             # combined_audio = audio1 + audio2
@@ -110,17 +111,6 @@ def process_audio(request):
             # export the concatenated audio as a new file
             file_handle = combined_audio.export("combined.wav", format="wav")
 
-            # data, sr = librosa.load(io.BytesIO(byte_array), sr=22050, mono=True)
-            # # byte_array: 바이트 배열
-            # # with io.BytesIO(byte_array) as f:
-            # #     data, sr = sf.read(f, dtype='float32')
-            #
-            # # 3초 묵음 추가
-            # silent_sec = 3
-            # silent_samples = int(silent_sec * sr)
-            # silent = np.zeros(silent_samples)
-            # data = np.concatenate((data, silent))
-            #
             # 신호 및 샘플링 레이트 가져오기
             sig, sr = librosa.load(file_handle, sr=22050)
 
@@ -218,10 +208,9 @@ def process_audio(request):
             # get the predicted class index
             predicted_class_index = torch.argmax(prediction).item()
 
-            # 예측값 알파벳 출력
-            #print(alpha[predicted_class_index])
 
             response = {'predicted_alphabet': alpha[predicted_class_index]}
+            # 예측값 알파벳 출력
             print("post: ", response)
             return JsonResponse(response)
     except Exception as e:
