@@ -13,7 +13,7 @@ def get_spectrogram(request):
 
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.158.116:8000/process_audio/'
+        url = 'http://223.194.158.240:8000/process_audio/'
         headers = {"Content-Type": "application/json"}
 
         try:
@@ -59,6 +59,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import subprocess
 import struct
+from .models import PrintLog
 
 matplotlib.use('Agg')
 
@@ -73,7 +74,7 @@ SAMPLE_RATE = 44100
 CHANNELS = 1
 SAMPLE_WIDTH = 2
 
-# m4a -> wav -> spectrogram / -> model -> result
+# m4a -> wav -> spectrogram / -> resnetModel -> result
 @csrf_exempt
 def process_audio(request):
     global peekIndex, image_url
@@ -182,9 +183,9 @@ def process_audio(request):
             plt.close()
 
             # 모델 입히기
-            # load the saved ResNet model
-            model = torch.load('djangoServer/model/resnet32.pth')
-            # switch model to evaluation mode
+            # load the saved ResNet resnetModel
+            model = torch.load('djangoServer/resnetModel/resnet32.pth')
+            # switch resnetModel to evaluation mode
             model.eval()
             # define the image transforms
             image_transforms = transforms.Compose([
@@ -201,12 +202,13 @@ def process_audio(request):
             # add batch dimension to the image tensor
             test_image_tensor = test_image_tensor.unsqueeze(0)
 
-            # get the model's prediction
+            # get the resnetModel's prediction
             with torch.no_grad():
                 prediction = model(test_image_tensor)
 
             # get the predicted class index
             predicted_class_index = torch.argmax(prediction).item()
+
 
 
             response = {'predicted_alphabet': alpha[predicted_class_index]}
