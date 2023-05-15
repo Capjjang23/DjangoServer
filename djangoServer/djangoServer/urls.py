@@ -26,6 +26,7 @@ router = routers.DefaultRouter()
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('admin/', admin.site.urls),
     path('process_audio/', views.process_audio, name='process_audio'),
     path('get_spectrogram/', views.get_spectrogram, name='get_spectrogram'),
 
