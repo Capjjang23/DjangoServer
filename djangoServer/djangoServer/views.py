@@ -16,7 +16,7 @@ def get_spectrogram(request):
 
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.155.90:8000/process_audio/'
+        url = 'http://172.30.1.97:8000/process_audio/'
         headers = {"Content-Type": "application/json"}
 
         try:
@@ -28,15 +28,17 @@ def get_spectrogram(request):
 
                 data = {'recordData': byte_array}
                 #response = requests.post(url, data=json.dumps(data), headers=headers)
-                response = requests.post(url, data=byte_array)
+                response = requests.post(url, data= json.dumps(data))
+                #response = requests.post(url, data=byte_array)
 
                 print(response.json())
 
                 if response.status_code == 200:
-                    response_data = json.loads(response.content.decode('utf-8')) if response else {}
-                    print("get : ", response_data)
-
+                    response_data = response.json()
                     predicted_alphabet = response_data['predicted_alphabet']
+                    print("(get) response_data : ", response_data)
+                    print("(get) predicted_alphabet : ", predicted_alphabet)
+
                     return JsonResponse({'predicted_alphabet': predicted_alphabet})
                 else:
                     print(f"An error occurred: {response.status_code}")
@@ -105,11 +107,7 @@ def process_audio(request):
             subprocess.run(["ffmpeg", "-y", "-i", input_file, output_file])
 
             audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
-            # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
             silence = AudioSegment.silent(duration=1000)  # 1초 묵음
-
-            # concatenate the audio files
-            # combined_audio = audio1 + audio2
             combined_audio = audio1 + silence
 
             # export the concatenated audio as a new file
@@ -179,14 +177,12 @@ def process_audio(request):
             librosa.display.specshow(log_spectrogram, sr=sr, hop_length=hop_length, cmap='magma')
 
             # matplotlib 라이브러리를 사용하여 생성된 spectrogram 이미지를 jpg 형식으로 저장
-            # spectrogram 이미지 저장
             image_path = 'static/images/' + 'test.jpg'
             plt.savefig(image_path)
 
             plt.close()
 
             # 모델 입히기
-            # load the saved ResNet resnetModel
             model = torch.load('djangoServer/resnetModel/resnet32.pth')
             # switch resnetModel to evaluation mode
             model.eval()
@@ -223,6 +219,7 @@ def process_audio(request):
                 # 모델 객체 생성 및 이미지 파일 저장
                 print_log.image.save(file_name, django_file, save=True)
             print_log.result = alpha[predicted_class_index]
+            print_log.save()
 
             response = {'predicted_alphabet': alpha[predicted_class_index]}
             # 예측값 알파벳 출력
