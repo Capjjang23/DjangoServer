@@ -18,7 +18,7 @@ def get_spectrogram(request):
         # response = None  # 초기값을 지정해줍니다.
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.128.94:8000/process_audio/'
+        url = 'http://172.20.10.3:8000/process_audio/'
         try:
             with open(audio_path, 'rb') as f:
                 # audio_file = {'m4a' : f}
@@ -92,7 +92,7 @@ def process_audio(request):
             byte_data = requestBody['recordData']
             byte_array = bytes([struct.pack('b', x)[0] for x in byte_data])
 
-            print(byte_array)
+            # print(byte_array)
 
             with open('my_audio_file.aac', 'wb+') as destination:
                 for i in range(0, len(byte_array), 32):
@@ -104,30 +104,8 @@ def process_audio(request):
             output_file = "my_audio_file.wav"
 
             # Run the ffmpeg command to convert the AAC file to WAV
-            subprocess.run(["ffmpeg", "-y", "-i", input_file, output_file])
+            subprocess.run(["ffmpeg", "-y", "-i", input_file, "-t","1",output_file])
 
-            # audio1 = AudioSegment.from_file("my_audio_file.wav", format="wav")
-            # # audio2 = AudioSegment.from_file("djangoServer/slienceSound.m4a", format="m4a")
-            # silence = AudioSegment.silent(duration=3000)  # 3초 묵음
-            #
-            # # concatenate the audio files
-            # # combined_audio = audio1 + audio2
-            # combined_audio = audio1 + silence
-            #
-            # # export the concatenated audio as a new file
-            # file_handle = combined_audio.export("combined.wav", format="wav")
-
-            # data, sr = librosa.load(io.BytesIO(byte_array), sr=22050, mono=True)
-            # # byte_array: 바이트 배열
-            # # with io.BytesIO(byte_array) as f:
-            # #     data, sr = sf.read(f, dtype='float32')
-            #
-            # # 3초 묵음 추가
-            # silent_sec = 3
-            # silent_samples = int(silent_sec * sr)
-            # silent = np.zeros(silent_samples)
-            # data = np.concatenate((data, silent))
-            #
             # 신호 및 샘플링 레이트 가져오기
             sig, sr = librosa.load("my_audio_file.wav", sr=22050)
 
