@@ -1,4 +1,7 @@
+import os
+
 from PIL import Image
+from django.core.files import File
 from django.http import HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -13,7 +16,7 @@ def get_spectrogram(request):
 
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.158.240:8000/process_audio/'
+        url = 'http://223.194.155.90:8000/process_audio/'
         headers = {"Content-Type": "application/json"}
 
         try:
@@ -209,7 +212,17 @@ def process_audio(request):
             # get the predicted class index
             predicted_class_index = torch.argmax(prediction).item()
 
+            # 모델 객체 생성 및 데이터 저장
+            print_log = PrintLog()
+            print_log.wav_file.save("combined.wav", file_handle)
+            # 이미지 파일을 열고 File 객체 생성
+            with open(image_path, 'rb') as f:
+                file_name = os.path.basename(image_path)
+                django_file = File(f, name=file_name)
 
+                # 모델 객체 생성 및 이미지 파일 저장
+                print_log.image.save(file_name, django_file, save=True)
+            print_log.result = alpha[predicted_class_index]
 
             response = {'predicted_alphabet': alpha[predicted_class_index]}
             # 예측값 알파벳 출력
