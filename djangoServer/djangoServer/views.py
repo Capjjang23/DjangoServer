@@ -13,7 +13,7 @@ def get_spectrogram(request):
 
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.158.116:8000/process_audio/'
+        url = 'http://192.168.47.145:8000/process_audio/'
         headers = {"Content-Type": "application/json"}
 
         try:
@@ -86,6 +86,8 @@ def process_audio(request):
             # POST 요청에서 biteArray 데이터를 가져옵니다.
             requestBody = json.loads(request.body)  # 안드로이드 앱에서 보낸 데이터를 가져옵니다.
             byte_data = requestBody['recordData']
+            print("requestBody:",requestBody)
+            print("byte_data:",byte_data)
             byte_array = bytes([struct.pack('b', x)[0] for x in byte_data])
 
             with open('my_audio_file.aac', 'wb+') as destination:
@@ -196,8 +198,13 @@ def process_audio(request):
             # 이미지 열기
             image = Image.open(image_path)
 
+            # 224*224 이미지 저장
+            temp_image = image.resize((224, 224))
+            temp_image.save('static/images/' + 'resized_test.jpg')
+
             # apply the transforms to the test image
             test_image_tensor = image_transforms(image)
+
             # add batch dimension to the image tensor
             test_image_tensor = test_image_tensor.unsqueeze(0)
 

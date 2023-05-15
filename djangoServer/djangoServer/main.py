@@ -17,8 +17,6 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myproject.settings')
 django.setup()
 
-from djangoServer.djangoServer.views import post_image
-
 # POST 요청을 시뮬레이션하기 위한 코드
 class Request:
     def __init__(self, filename):
