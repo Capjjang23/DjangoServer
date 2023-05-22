@@ -15,8 +15,7 @@ def get_spectrogram(request):
         # 클라이언트에서 전송한 파일을 가져옵니다.
 
         audio_path = 'djangoServer/audio/W.m4a'
-        # url = 'http://localhost:8000/process_audio/'
-        url = 'http://172.30.1.97:8000/process_audio/'
+        url = 'http://223.194.130.187:8000/process_audio/'
         headers = {"Content-Type": "application/json"}
 
         try:
