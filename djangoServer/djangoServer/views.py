@@ -1,7 +1,5 @@
-import os
 
 from PIL import Image
-from django.core.files import File
 from django.http import HttpResponseServerError
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -109,10 +107,11 @@ def process_audio(request):
             combined_audio = audio1 + silence
 
             # export the concatenated audio as a new file
-            file_handle = combined_audio.export("combined.wav", format="wav")
+            file_path = "combined.wav"
+            combined_audio.export(file_path, format="wav")
 
             # 신호 및 샘플링 레이트 가져오기
-            sig, sr = librosa.load(file_handle, sr=22050)
+            sig, sr = librosa.load(file_path, sr=22050)
 
             # 에너지 평균 구하기
             sum = 0
@@ -129,11 +128,9 @@ def process_audio(request):
             START_LEN = 1102
             END_LEN = 20948
             if peekIndex > 1102:
-                #print(peekIndex)
                 startPoint = peekIndex - START_LEN
                 endPoint = peekIndex + 22050
             else:
-                #print(peekIndex)
                 startPoint = peekIndex
                 endPoint = peekIndex + END_LEN
 
@@ -159,7 +156,6 @@ def process_audio(request):
             n_fft_duration = float(n_fft) / sr
 
             # STFT
-            # stft = librosa.stft(sig[startPoint:endPoint], n_fft=n_fft, hop_length=hop_length)
             stft = librosa.stft(sig[startPoint:endPoint], n_fft=n_fft, hop_length=hop_length)
 
             # 복소공간 값 절댓값 취하기
@@ -181,7 +177,7 @@ def process_audio(request):
             plt.close()
 
             # 모델 입히기
-            model = torch.load('djangoServer/resnetModel/resnet32.pth')
+            model = torch.load('djangoServer/resnetModel/resnet34.pth')
             # switch resnetModel to evaluation mode
             model.eval()
             # define the image transforms
