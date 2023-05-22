@@ -16,7 +16,7 @@ def get_spectrogram(request):
         # response = None  # 초기값을 지정해줍니다.
         audio_path = 'djangoServer/audio/m.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://223.194.153.133:8000/process_audio/'
+        url = 'http://192.168.0.15:8000/process_audio/'
         try:
             with open(audio_path, 'rb') as f:
                 # audio_file = {'m4a' : f}

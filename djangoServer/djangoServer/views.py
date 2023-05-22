@@ -13,7 +13,7 @@ def get_spectrogram(request):
 
         audio_path = 'djangoServer/audio/W.m4a'
         # url = 'http://localhost:8000/process_audio/'
-        url = 'http://192.168.47.145:8000/process_audio/'
+        url = 'http://192.168.0.15:8000/process_audio/'
         headers = {"Content-Type": "application/json"}
 
         try:
